@@ -30,12 +30,14 @@ class EmotionsDataset(Dataset):
         return encoding["input_ids"].squeeze(), encoding["attention_mask"].squeeze(), label
 
 
-def bert_init(train, dev, test, batch_size, my_cache_dir):
+def bert_init(train, dev, test, batch_size, emotion_num, my_cache_dir):
     # Load pre-trained BERT tokenizer and encoder
     print(">>>>>>>>>>>> Loading BERT tokenizer and encoder... ")
-    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', cache_dir=my_cache_dir)
+    tokenizer = BertTokenizer.from_pretrained(
+        'bert-base-uncased', cache_dir=my_cache_dir)
     print(">>>>>>>>>>>> Loading BERT model... ")
-    pretrained_model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=len(train.emotion.unique()), cache_dir=my_cache_dir)
+    pretrained_model = BertForSequenceClassification.from_pretrained(
+        'bert-base-uncased', num_labels=emotion_num, cache_dir=my_cache_dir)
 
     print(">>>>>>>>>>>> BERT Preparing for training... ")
     train_dataset = EmotionsDataset(tokenizer, train)
@@ -44,7 +46,8 @@ def bert_init(train, dev, test, batch_size, my_cache_dir):
     print(">>>>>>>>>>>> BERT Preparing for test...")
     test_dataset = EmotionsDataset(tokenizer, test)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    train_loader = DataLoader(
+        train_dataset, batch_size=batch_size, shuffle=True)
     dev_loader = DataLoader(dev_dataset, batch_size=batch_size)
     test_loader = DataLoader(test_dataset, batch_size=batch_size)
 

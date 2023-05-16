@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split
 import torch
 import torch.nn.functional as F
 
+
 def load_data(data_path="data/"):
     print(">>>>>>>>>>>> Loading Data >>>>>>>>>>>>")
     # Check if processed CSV files exist
@@ -32,18 +33,16 @@ def load_data(data_path="data/"):
     # Read the emotions list
     with open(data_path + "emotions.txt", "r") as f:
         emotion_list = [line.strip() for line in f.readlines()]
-        emotion_to_idx = {emotion: idx for idx, emotion in enumerate(emotion_list)}
 
-    for dataset in (train,dev,test):
-        # Add emotion column
-        dataset["emotion"] = dataset[emotion_list].apply(lambda x: x.idxmax(), axis=1)
-        # Add label which is 28-length one-hot vector
-        dataset["label"] = dataset["emotion"].apply(lambda x: F.one_hot(torch.tensor(emotion_to_idx[x]), num_classes=len(emotion_list)))
+    for dataset in (train, dev, test):
+        dataset["label"] = dataset[emotion_list].apply(
+            lambda x: torch.tensor([x[emotion] for emotion in emotion_list]), axis=1)
+        dataset["label_sum"] = dataset["label"].apply(
+            lambda x: torch.sum(x))
 
     # print example
     print("======================================example==========================================")
-    print(train.head()[["text", "emotion", "label"]])
+    print(train.head()[["text", "label_sum", "label"]])
     print("=======================================================================================")
 
     return train, dev, test
-
