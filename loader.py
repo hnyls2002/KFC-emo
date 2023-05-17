@@ -2,8 +2,6 @@ import os
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import torch
-import torch.nn.functional as F
-
 
 def load_data(data_path="data/"):
     print(">>>>>>>>>>>> Loading Data >>>>>>>>>>>>")
@@ -21,9 +19,28 @@ def load_data(data_path="data/"):
         df3 = pd.read_csv(full_data_path + "goemotions_3.csv")
         df = pd.concat([df1, df2, df3])
 
+        print(">>>>>>>>>>>> Splitting Data >>>>>>>>>>>>")
+
         # Split data into train/dev/test sets
         train, test = train_test_split(df, test_size=0.2)
         train, dev = train_test_split(train, test_size=0.25)
+
+        new_train = []
+        new_dev = []
+        new_test = []
+
+        for _, row in train.iterrows():
+            if row["example_very_unclear"] == False:
+                new_train.append(row)
+        for _, row in dev.iterrows():
+            if row["example_very_unclear"] == False:
+                new_dev.append(row)
+        for _, row in test.iterrows():
+            if row["example_very_unclear"] == False:
+                new_test.append(row)
+        train = pd.DataFrame(new_train)
+        dev = pd.DataFrame(new_dev)
+        test = pd.DataFrame(new_test)
 
         # Save data to disk
         train.to_csv(data_path + "train.csv", index=False)
@@ -39,6 +56,11 @@ def load_data(data_path="data/"):
             lambda x: torch.tensor([x[emotion] for emotion in emotion_list]), axis=1)
         dataset["label_sum"] = dataset["label"].apply(
             lambda x: torch.sum(x))
+        # for _, row in dataset.iterrows():
+        #     if row["label_sum"] == 0:
+        #         print(
+        #             ">>>>>>>>>>>> Warning: No emotion detected in the following example:")
+        #         print(row["text"])
 
     # print example
     print("======================================example==========================================")
