@@ -1,4 +1,6 @@
 import os
+import numpy as np
+from sklearn.metrics import f1_score, precision_score, recall_score
 import torch
 from model import BertSentimentAnalysis
 from torch import nn
@@ -18,10 +20,10 @@ emotion_num = len(emotion_list)
 train, dev, test = load_data()
 
 # Set hyperparameters
-batch_size = 200
+batch_size = 128
 num_epochs = 100
-learning_rate = 1e-5
-dropout_prob = 0.5
+learning_rate = 2e-5
+dropout_prob = 0.1
 threshold = 0.5
 
 # Prepare training data
@@ -36,7 +38,7 @@ optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
 criterion = nn.BCEWithLogitsLoss()
 
 # if checkpoint_path exists, load checkpoint
-checkpoint_path = "./save/bert_sentiment_analysis.pth"
+checkpoint_path = "./save/(acc=.20,f1=.20,bs=128,lr=2e-5,drp=0.1)bert_sentiment_analysis.pth"
 if os.path.exists(checkpoint_path):
     print(">>>>>>>>>>>> Loading checkpoint... ")
     model.load_state_dict(torch.load(checkpoint_path))
@@ -69,29 +71,60 @@ for epoch in range(num_epochs):
     model.eval()
     with torch.no_grad():
         correct, total, dev_loss = 0, 0, 0
+        target_all_labels, pred_all_labels = [], []
+
         for batch_idx, batch_data in enumerate(dev_loader):
             input_ids, attention_mask, targets = batch_data
             input_ids, attention_mask, targets = input_ids.to(
                 device), attention_mask.to(device), targets.to(device)
             targets = targets.float()
             logits = model(input_ids, attention_mask)
-            dev_loss += criterion(logits, targets).item()
+            current_loss = criterion(logits, targets).item()
+            dev_loss += current_loss
 
             logits = torch.sigmoid(logits)
             predictions = (logits > threshold)
             targets = targets.bool()
+
+            # print("predictions : ", predictions.sum())
+            # print("targets : ", targets.sum(axis=1))
+
+            pred_labels = predictions.cpu().numpy()
+            target_labels = targets.cpu().numpy()
+
+            target_all_labels.extend(target_labels)
+            pred_all_labels.extend(pred_labels)
+
+            # for i in range(28):
+            #     print(target_labels[:, i])
+            #     print(pred_labels[:, i])
+            #     precision = precision_score(
+            #         target_labels[:, i], pred_labels[:, i], zero_division=0)
+            #     recall = recall_score(
+            #         target_labels[:, i], pred_labels[:, i], zero_division=0)
+            #     f1 = f1_score(target_labels[:, i],
+            #                   pred_labels[:, i], zero_division=0)
+
+            # all labels are correct
             correct += torch.sum(torch.all(torch.eq(predictions, targets), dim=1))
+
+            # for each label, respectivly calculate the accuracy, precision, recall
 
             # print("logits : ", logits)
             # print("targets : ", targets)
             # print("predictions : ", predictions)
 
+
             total += targets.size(0)
-            print("total : {}/{}, current acc : {:.2%}".format(total,
-                  dev_loader.__len__() * batch_size, correct/total))
+            print("total : {}/{}, current acc : {:.2%}, current loss : {:.4}".format(total,
+                  dev_loader.__len__() * batch_size, correct/total, current_loss))
 
         dev_acc = correct / total
         dev_loss /= len(dev_loader)
+        f1 = f1_score(target_all_labels, pred_all_labels, average='macro')
+        f1s = f1_score(target_all_labels, pred_all_labels, average=None)
 
         print(
-            f"Epoch {epoch+1}, Dev Loss: {dev_loss:.8f}, Dev Acc: {dev_acc:.4%}")
+            f"Epoch {epoch+1}, Dev Loss: {dev_loss:.8f}, Dev Acc: {dev_acc:.4%}, F1 Score: {f1:.4%}")
+
+        print("f1s : ", f1s)
