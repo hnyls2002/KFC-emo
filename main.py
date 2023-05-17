@@ -18,7 +18,7 @@ emotion_num = len(emotion_list)
 train, dev, test = load_data()
 
 # Set hyperparameters
-batch_size = 128
+batch_size = 200
 num_epochs = 100
 learning_rate = 1e-5
 dropout_prob = 0.5
@@ -29,11 +29,11 @@ pretrained_model, train_loader, dev_loader, test_loader = bert_init(
     train=train, dev=dev, test=test, batch_size=batch_size, emotion_num=emotion_num, my_cache_dir="./cache/")
 
 # Initialize model
+pretrained_model.config.hidden_dropout_prob = dropout_prob
 model = BertSentimentAnalysis(
     config=pretrained_model.config, num_labels=emotion_num).to(device)
 optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
 criterion = nn.BCEWithLogitsLoss()
-model.config.hidden_dropout_prob = dropout_prob
 
 # if checkpoint_path exists, load checkpoint
 checkpoint_path = "./save/bert_sentiment_analysis.pth"
@@ -59,7 +59,7 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
         print(
-            f"Epoch {epoch+1}, Batch {batch_idx+1}/{len(train_loader)}, Loss: {loss.item():.4f}")
+            f"Epoch {epoch+1}, Batch {batch_idx+1}/{len(train_loader)}, Loss: {loss.item():.8f}")
         writer.add_scalars('loss', {"loss": loss.item()},
                            epoch * len(train_loader) + batch_idx)
 
@@ -94,4 +94,4 @@ for epoch in range(num_epochs):
         dev_loss /= len(dev_loader)
 
         print(
-            f"Epoch {epoch+1}, Dev Loss: {dev_loss:.2f}, Dev Acc: {dev_acc:.2%}")
+            f"Epoch {epoch+1}, Dev Loss: {dev_loss:.8f}, Dev Acc: {dev_acc:.4%}")

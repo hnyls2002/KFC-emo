@@ -6,8 +6,8 @@ class BertSentimentAnalysis(nn.Module):
         super(BertSentimentAnalysis, self).__init__()
         self.num_labels = num_labels
         self.bert = BertModel(config)
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.config = config
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
         if inference_head is None:
             self.inference_head = nn.Linear(config.hidden_size, num_labels)
         else:
