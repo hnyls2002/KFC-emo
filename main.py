@@ -22,6 +22,7 @@ batch_size = 128
 num_epochs = 100
 learning_rate = 1e-5
 dropout_prob = 0.5
+threshold = 0.5
 
 # Prepare training data
 pretrained_model, train_loader, dev_loader, test_loader = bert_init(
@@ -31,14 +32,14 @@ pretrained_model, train_loader, dev_loader, test_loader = bert_init(
 model = BertSentimentAnalysis(
     config=pretrained_model.config, num_labels=emotion_num).to(device)
 optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
-criterion = nn.CrossEntropyLoss()
+criterion = nn.BCEWithLogitsLoss()
 model.config.hidden_dropout_prob = dropout_prob
 
 # if checkpoint_path exists, load checkpoint
 checkpoint_path = "./save/bert_sentiment_analysis.pth"
 if os.path.exists(checkpoint_path):
-    model.load_state_dict(torch.load(checkpoint_path))
     print(">>>>>>>>>>>> Loading checkpoint... ")
+    model.load_state_dict(torch.load(checkpoint_path))
 
 # Initialize tensorboard
 log_dir = "./logs/"
@@ -72,16 +73,20 @@ for epoch in range(num_epochs):
             input_ids, attention_mask, targets = batch_data
             input_ids, attention_mask, targets = input_ids.to(
                 device), attention_mask.to(device), targets.to(device)
-            logits = model(input_ids, attention_mask)
             targets = targets.float()
+            logits = model(input_ids, attention_mask)
             dev_loss += criterion(logits, targets).item()
-            pred_labels = torch.argmax(logits, dim=1)
-            predictions = torch.zeros_like(targets).scatter_(
-                1, pred_labels.view(-1, 1), 1)
+
+            logits = torch.sigmoid(logits)
+            predictions = (logits > threshold)
+            targets = targets.bool()
+            correct += torch.sum(torch.all(torch.eq(predictions, targets), dim=1))
+
+            # print("logits : ", logits)
+            # print("targets : ", targets)
+            # print("predictions : ", predictions)
+
             total += targets.size(0)
-            for i in range(predictions.size(0)):
-                if torch.equal(predictions[i], targets[i]):
-                    correct += 1
             print("total : {}/{}, current acc : {:.2%}".format(total,
                   dev_loader.__len__() * batch_size, correct/total))
 
