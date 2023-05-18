@@ -23,7 +23,7 @@ train, dev, test = load_data()
 batch_size = 64
 num_epochs = 10
 learning_rate = 5e-5
-dropout_prob = 0.1
+dropout_prob = 0.2
 threshold = 0.5
 
 # Prepare training data
@@ -37,12 +37,12 @@ model = BertSentimentAnalysis(
 optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
 batch_nums = len(train_loader)
 scheduler = optim.lr_scheduler.CyclicLR(
-    optimizer=optimizer, base_lr=1e-5, max_lr=5e-5, step_size_up=batch_nums * 2 / 3, step_size_down=batch_nums * 4 / 3, mode="triangular2" , gamma=0.9, cycle_momentum=False)
+    optimizer=optimizer, base_lr=1e-5, max_lr=5e-5, step_size_up=batch_nums * 2 / 3, step_size_down=batch_nums * 4 / 3, mode="triangular2", gamma=0.9, cycle_momentum=False)
 criterion = nn.BCEWithLogitsLoss()
 
 # if checkpoint_path exists, load checkpoint
 checkpoint_dir = "./save/"
-checkpoint_name = "exp-2"
+checkpoint_name = "exp-3"
 checkpoint_path = checkpoint_dir + checkpoint_name + ".pth"
 if os.path.exists(checkpoint_path):
     print(">>>>>>>>>>>> Loading checkpoint... ")
@@ -50,12 +50,13 @@ if os.path.exists(checkpoint_path):
 
 # Initialize tensorboard
 logs_dir = "./logs/"
-exp_name = "exp-2"
+exp_name = "exp-3"
 writer = SummaryWriter(log_dir=logs_dir + exp_name)
 
 # Train model
 for epoch in range(num_epochs):
     model.train()
+    acc_on_train_avg = 0
     for batch_idx, batch_data in enumerate(train_loader):
         input_ids, attention_mask, targets = batch_data
         input_ids, attention_mask, targets = input_ids.to(
@@ -73,6 +74,8 @@ for epoch in range(num_epochs):
         targets = targets.bool()
         acc_on_train = torch.sum(
             torch.all(torch.eq(prediction, targets), dim=1)) / targets.size(0)
+
+        acc_on_train_avg += acc_on_train
 
         print(
             f"Epoch {epoch+1}, Batch {batch_idx+1}/{len(train_loader)}, Loss: {loss.item():.8f}, Acc: {acc_on_train:.8f}")
@@ -144,5 +147,6 @@ for epoch in range(num_epochs):
 
         print(
             f"Epoch {epoch+1}, Dev Loss: {dev_loss:.8f}, Dev Acc: {dev_acc:.4%}, F1 Score: {f1:.4%}")
+        print("avg acc on train : {:.4%}".format(acc_on_train_avg / len(train_loader)))
 
         print("f1s : ", f1s)
