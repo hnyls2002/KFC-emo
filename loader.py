@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 import torch
 
+
 def load_data(data_path="data/"):
     print(">>>>>>>>>>>> Loading Data >>>>>>>>>>>>")
     # Check if processed CSV files exist
@@ -22,8 +23,8 @@ def load_data(data_path="data/"):
         print(">>>>>>>>>>>> Splitting Data >>>>>>>>>>>>")
 
         # Split data into train/dev/test sets
-        train, test = train_test_split(df, test_size=0.2)
-        train, dev = train_test_split(train, test_size=0.25)
+        train, test = train_test_split(df, test_size=0.05)
+        train, dev = train_test_split(train, test_size=1/19)
 
         new_train = []
         new_dev = []
@@ -47,6 +48,8 @@ def load_data(data_path="data/"):
         dev.to_csv(data_path + "dev.csv", index=False)
         test.to_csv(data_path + "test.csv", index=False)
 
+    print(">>>>>>>>>>>> The size of train/dev/test set is: ", train.shape, dev.shape, test.shape)
+
     # Read the emotions list
     with open(data_path + "emotions.txt", "r") as f:
         emotion_list = [line.strip() for line in f.readlines()]
@@ -57,9 +60,14 @@ def load_data(data_path="data/"):
         dataset["label_sum"] = dataset["label"].apply(
             lambda x: torch.sum(x))
         # for _, row in dataset.iterrows():
+        #     for idx, emo in enumerate(emotion_list):
+        #         if row[emo] != row["label"][idx]:
+        #             print(
+        #                 "\x1b[31m" + ">>>>>>>>>>>> Warning: Inconsistent label detected in the following example:" + "\x1b[0m")
+        #             print(row["text"])
         #     if row["label_sum"] == 0:
         #         print(
-        #             ">>>>>>>>>>>> Warning: No emotion detected in the following example:")
+        #             "\x1b[31m" + ">>>>>>>>>>>> Warning: No emotion detected in the following example:" + "\x1b[0m")
         #         print(row["text"])
 
     # print example
