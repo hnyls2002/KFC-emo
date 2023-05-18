@@ -20,9 +20,9 @@ emotion_num = len(emotion_list)
 train, dev, test = load_data()
 
 # Set hyperparameters
-batch_size = 128
-num_epochs = 100
-learning_rate = 2e-5
+batch_size = 64
+num_epochs = 10
+learning_rate = 5e-5
 dropout_prob = 0.1
 threshold = 0.5
 
@@ -35,17 +35,23 @@ pretrained_model.config.hidden_dropout_prob = dropout_prob
 model = BertSentimentAnalysis(
     config=pretrained_model.config, num_labels=emotion_num).to(device)
 optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
+batch_nums = len(train_loader)
+scheduler = optim.lr_scheduler.CyclicLR(
+    optimizer=optimizer, base_lr=1e-5, max_lr=5e-5, step_size_up=batch_nums * 2 / 3, step_size_down=batch_nums * 4 / 3, mode="triangular2" , gamma=0.9, cycle_momentum=False)
 criterion = nn.BCEWithLogitsLoss()
 
 # if checkpoint_path exists, load checkpoint
-checkpoint_path = "./save/(acc=.20,f1=.20,bs=128,lr=2e-5,drp=0.1)bert_sentiment_analysis.pth"
+checkpoint_dir = "./save/"
+checkpoint_name = "exp-2"
+checkpoint_path = checkpoint_dir + checkpoint_name + ".pth"
 if os.path.exists(checkpoint_path):
     print(">>>>>>>>>>>> Loading checkpoint... ")
     model.load_state_dict(torch.load(checkpoint_path))
 
 # Initialize tensorboard
-log_dir = "./logs/"
-writer = SummaryWriter(log_dir=log_dir)
+logs_dir = "./logs/"
+exp_name = "exp-2"
+writer = SummaryWriter(log_dir=logs_dir + exp_name)
 
 # Train model
 for epoch in range(num_epochs):
@@ -60,10 +66,23 @@ for epoch in range(num_epochs):
         loss = criterion(logits, targets)
         loss.backward()
         optimizer.step()
+        scheduler.step()
+
+        # calculate accuracy on training set
+        prediction = torch.sigmoid(logits) > threshold
+        targets = targets.bool()
+        acc_on_train = torch.sum(
+            torch.all(torch.eq(prediction, targets), dim=1)) / targets.size(0)
+
         print(
-            f"Epoch {epoch+1}, Batch {batch_idx+1}/{len(train_loader)}, Loss: {loss.item():.8f}")
+            f"Epoch {epoch+1}, Batch {batch_idx+1}/{len(train_loader)}, Loss: {loss.item():.8f}, Acc: {acc_on_train:.8f}")
+
         writer.add_scalars('loss', {"loss": loss.item()},
                            epoch * len(train_loader) + batch_idx)
+        writer.add_scalars(
+            'lr', {"lr": optimizer.param_groups[0]['lr']}, epoch * len(train_loader) + batch_idx)
+        writer.add_scalars(
+            'acc_train', {"acc_train": acc_on_train}, epoch * len(train_loader) + batch_idx)
 
     print(">>>>>>>>>>>> Saving checkpoint... ")
     torch.save(model.state_dict(), checkpoint_path)
@@ -113,7 +132,6 @@ for epoch in range(num_epochs):
             # print("logits : ", logits)
             # print("targets : ", targets)
             # print("predictions : ", predictions)
-
 
             total += targets.size(0)
             print("total : {}/{}, current acc : {:.2%}, current loss : {:.4}".format(total,
