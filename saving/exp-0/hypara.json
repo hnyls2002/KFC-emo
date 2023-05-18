@@ -1,0 +1,11 @@
+{
+    "exp_name": "exp-0",
+    "model_name": "DenseLayer",
+    "emo_list_path": "./data/emotions.txt",
+    "batch_size": 64,
+    "fixed_lr": 5e-05,
+    "max_epochs": 7,
+    "dynamic_lr": "None",
+    "drpout": 0.2,
+    "threshold": 0.5
+}
