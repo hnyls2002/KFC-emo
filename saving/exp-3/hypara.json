@@ -5,7 +5,7 @@
     "emo_list_path": "./data/emotions.txt",
     "batch_size": 16,
     "fixed_lr": 5e-05,
-    "max_epochs": 8,
+    "max_epochs": 2,
     "max_epochs_after_freeze": 0,
     "dynamic_lr": "cyclic",
     "drpout": 0.2,

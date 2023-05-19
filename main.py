@@ -68,9 +68,15 @@ model = BertSentimentAnalysis(
 optimizer = optim.AdamW(model.parameters(), lr=fixed_lr)
 batch_nums = len(train_loader)
 criterion = nn.BCEWithLogitsLoss()
-# scheduler = optim.lr_scheduler.ConstantLR(optimizer=optimizer)
-scheduler = optim.lr_scheduler.CyclicLR(
-    optimizer=optimizer, base_lr=1e-5, max_lr=5e-5, step_size_up=batch_nums * 2 / 3, step_size_down=batch_nums * 4 / 3, mode="triangular2", cycle_momentum=False)
+
+if dynamic_lr == "cyclic":
+    scheduler = optim.lr_scheduler.CyclicLR(
+        optimizer=optimizer, base_lr=1e-5, max_lr=5e-5, step_size_up=batch_nums * 2 / 3, step_size_down=batch_nums * 4 / 3, mode="triangular2", cycle_momentum=False)
+elif dynamic_lr == "constant":
+    scheduler = optim.lr_scheduler.ConstantLR(optimizer=optimizer)
+elif dynamic_lr == "step":
+    scheduler = optim.lr_scheduler.StepLR(
+        optimizer=optimizer, step_size=batch_nums, gamma=0.8)
 
 # if checkpoint_path exists, load checkpoint
 checkpoint_path = saving_dir + exp_name + "/chkpt.pth"
@@ -85,6 +91,8 @@ logs_dir = "./logs/"
 writer = SummaryWriter(log_dir=logs_dir + exp_name)
 
 # Train model
+
+
 def train_model(runned_epochs, max_epochs, freeze_flag=False):
     for epoch in range(runned_epochs, max_epochs):
         model.train()
