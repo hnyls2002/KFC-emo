@@ -17,7 +17,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # load settings
 print(">>>>>>>>>>>> Loading settings... ")
 saving_dir = "./saving/"
-exp_name = "exp-3"
+exp_name = "exp-5"
 hypara = try_load_hypara(exp_name)
 if hypara is None:
     print("No such experiment!")
@@ -58,13 +58,9 @@ pretrained_model, train_loader, dev_loader, test_loader = bert_init(
 #     bert_path = saving_dir + exp_name + '/' + hypara['bert_model'] + '.pth'
 #     pretrained_model.load_state_dict(torch.load(bert_path))
 
-# initialize dropout prob
-with open(saving_dir + exp_name + '/' + "config.txt", "w") as f:
-    f.write(str(pretrained_model.config))
-pretrained_model.config.hidden_dropout_prob = drpout
 # Initialize model
-model = BertSentimentAnalysis(
-    config=pretrained_model.config, pretrained_model=pretrained_model, num_labels=emotion_num).to(device)
+model = BertSentimentAnalysis(hidden_size=pretrained_model.config.hidden_size, dropout_prob=drpout,
+                              pretrained_model=pretrained_model, num_labels=emotion_num).to(device)
 optimizer = optim.AdamW(model.parameters(), lr=fixed_lr)
 batch_nums = len(train_loader)
 criterion = nn.BCEWithLogitsLoss()
