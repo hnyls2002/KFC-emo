@@ -35,6 +35,7 @@ emotion_num = len(emo_list)
 # set hyperparameters
 batch_size = hypara['batch_size']
 max_epochs = hypara['max_epochs']
+max_epochs_after_freeze = hypara['max_epochs_after_freeze']
 fixed_lr = hypara['fixed_lr']
 dynamic_lr = hypara['dynamic_lr']
 drpout = hypara['drpout']
@@ -195,5 +196,9 @@ def train_model(runned_epochs, max_epochs, freeze_flag=False):
                 f"Epoch {epoch+1}, Dev Loss: {dev_loss:.8f}, Dev Acc: {dev_acc:.4%}, F1 Score: {f1:.4%}")
 
 
-train_model(runned_epochs=runned_epochs,
-            max_epochs=max_epochs, freeze_flag=freeze_flag)
+if freeze_flag:
+    train_model(runned_epochs=runned_epochs,
+                max_epochs=max_epochs_after_freeze, freeze_flag=freeze_flag)
+else:
+    train_model(runned_epochs=runned_epochs,
+                max_epochs=max_epochs, freeze_flag=freeze_flag)

@@ -1,0 +1,13 @@
+{
+    "model_name": "DenseLayer",
+    "freeze": "True",
+    "bert_model": "bert-chkpt2-in-exp-5",
+    "emo_list_path": "./data/emotions.txt",
+    "batch_size": 16,
+    "fixed_lr": 5e-05,
+    "max_epochs": 2,
+    "max_epochs_after_freeze": 2,
+    "dynamic_lr": "constant",
+    "drpout": 0.0,
+    "threshold": 0.5
+}
