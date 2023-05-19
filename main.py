@@ -17,14 +17,13 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # load settings
 print(">>>>>>>>>>>> Loading settings... ")
 saving_dir = "./saving/"
-exp_name = "exp-1"
+exp_name = "exp-3"
 hypara = try_load_hypara(exp_name)
 if hypara is None:
     print("No such experiment!")
     exit()
 
 # load name
-exp_name = hypara['exp_name']
 model_name = hypara['model_name']
 
 # emotion list
@@ -40,6 +39,7 @@ fixed_lr = hypara['fixed_lr']
 dynamic_lr = hypara['dynamic_lr']
 drpout = hypara['drpout']
 threshold = hypara['threshold']
+freeze_flag = hypara['freeze'] == "True"
 
 # load data
 train, dev, test = load_data()
@@ -50,6 +50,13 @@ runned_epochs = len(load_res(exp_name, emo_list))
 # Prepare training data
 pretrained_model, train_loader, dev_loader, test_loader = bert_init(
     train=train, dev=dev, test=test, batch_size=batch_size, emotion_num=emotion_num, my_cache_dir="./cache/")
+
+# load fine-tuned model
+# if freeze_flag:
+#     print(">>>>>>>>>>>> Loading fine-tuned model... ")
+#     print(pretrained_model.config)
+#     bert_path = saving_dir + exp_name + '/' + hypara['bert_model'] + '.pth'
+#     pretrained_model.load_state_dict(torch.load(bert_path))
 
 # initialize dropout prob
 pretrained_model.config.hidden_dropout_prob = drpout
@@ -68,110 +75,116 @@ checkpoint_path = saving_dir + exp_name + "/chkpt.pth"
 if os.path.exists(checkpoint_path):
     print(">>>>>>>>>>>> Loading checkpoint... ")
     model.load_state_dict(torch.load(checkpoint_path))
+    # dump a bert model
+    # torch.save(model.bert.state_dict(), saving_dir + exp_name + "/bert-chkpt2-in-exp-1.pth")
 
 # Initialize tensorboard
 logs_dir = "./logs/"
 writer = SummaryWriter(log_dir=logs_dir + exp_name)
 
 # Train model
-for epoch in range(runned_epochs, max_epochs):
-    model.train()
-    train_df = pd.DataFrame(columns=['loss', 'lr', 'acc'])
-    for batch_idx, batch_data in enumerate(train_loader):
-        input_ids, attention_mask, targets = batch_data
-        input_ids, attention_mask, targets = input_ids.to(
-            device), attention_mask.to(device), targets.to(device)
-        optimizer.zero_grad()
-        logits = model(input_ids, attention_mask)
-        targets = targets.float()
-        loss = criterion(logits, targets)
-        loss.backward()
-        optimizer.step()
-        scheduler.step()
-
-        # calculate accuracy on training set
-        prediction = torch.sigmoid(logits) > threshold
-        targets = targets.bool()
-        acc_on_train = torch.sum(
-            torch.all(torch.eq(prediction, targets), dim=1)) / targets.size(0)
-
-        train_df.loc[batch_idx] = [
-            loss.item(), optimizer.param_groups[0]['lr'], acc_on_train.cpu().numpy()]
-
-        print(
-            f"Epoch {epoch+1}, Batch {batch_idx+1}/{len(train_loader)}, Loss: {loss.item():.8f}, Acc: {acc_on_train:.8f}")
-
-        writer.add_scalars('loss', {"loss": loss.item()},
-                           epoch * len(train_loader) + batch_idx)
-        writer.add_scalars(
-            'lr', {"lr": optimizer.param_groups[0]['lr']}, epoch * len(train_loader) + batch_idx)
-        writer.add_scalars(
-            'acc_train', {"acc_train": acc_on_train}, epoch * len(train_loader) + batch_idx)
-
-    store_train(exp_name, epoch, train_df)
-
-    print(">>>>>>>>>>>> Saving checkpoint... ")
-    torch.save(model.state_dict(), checkpoint_path)
-
-    model.eval()
-    with torch.no_grad():
-        correct, total, dev_loss = 0, 0, 0
-        target_all_labels, pred_all_labels = [], []
-
-        for batch_idx, batch_data in enumerate(dev_loader):
+def train_model(runned_epochs, max_epochs, freeze_flag=False):
+    for epoch in range(runned_epochs, max_epochs):
+        model.train()
+        train_df = pd.DataFrame(columns=['loss', 'lr', 'acc'])
+        for batch_idx, batch_data in enumerate(train_loader):
             input_ids, attention_mask, targets = batch_data
             input_ids, attention_mask, targets = input_ids.to(
                 device), attention_mask.to(device), targets.to(device)
-            targets = targets.float()
+            optimizer.zero_grad()
             logits = model(input_ids, attention_mask)
-            current_loss = criterion(logits, targets).item()
-            dev_loss += current_loss
+            targets = targets.float()
+            loss = criterion(logits, targets)
+            loss.backward()
+            optimizer.step()
+            scheduler.step()
 
-            logits = torch.sigmoid(logits)
-            predictions = (logits > threshold)
+            # calculate accuracy on training set
+            prediction = torch.sigmoid(logits) > threshold
             targets = targets.bool()
+            acc_on_train = torch.sum(
+                torch.all(torch.eq(prediction, targets), dim=1)) / targets.size(0)
 
-            pred_labels = predictions.cpu().numpy()
-            target_labels = targets.cpu().numpy()
+            train_df.loc[batch_idx] = [
+                loss.item(), optimizer.param_groups[0]['lr'], acc_on_train.cpu().numpy()]
 
-            target_all_labels.extend(target_labels)
-            pred_all_labels.extend(pred_labels)
+            print(
+                f"Epoch {epoch+1}, Batch {batch_idx+1}/{len(train_loader)}, Loss: {loss.item():.8f}, Acc: {acc_on_train:.8f}")
 
-            # all labels are correct
-            correct += torch.sum(torch.all(torch.eq(predictions, targets), dim=1))
+            writer.add_scalars('loss', {"loss": loss.item()},
+                               epoch * len(train_loader) + batch_idx)
+            writer.add_scalars(
+                'lr', {"lr": optimizer.param_groups[0]['lr']}, epoch * len(train_loader) + batch_idx)
+            writer.add_scalars(
+                'acc_train', {"acc_train": acc_on_train}, epoch * len(train_loader) + batch_idx)
 
-            total += targets.size(0)
-            print("total : {}/{}, current acc : {:.2%}, current loss : {:.4}".format(total,
-                  dev_loader.__len__() * batch_size, correct/total, current_loss))
+        store_train(exp_name, epoch, train_df)
 
-        dev_acc = correct / total
-        dev_loss /= len(dev_loader)
-        f1 = f1_score(target_all_labels, pred_all_labels, average='macro')
-        pre = precision_score(
-            target_all_labels, pred_all_labels, average='macro', zero_division=0)
-        rec = recall_score(target_all_labels, pred_all_labels,
-                           average='macro', zero_division=0)
+        print(">>>>>>>>>>>> Saving checkpoint... ")
+        torch.save(model.state_dict(), checkpoint_path)
 
-        f1s = f1_score(target_all_labels, pred_all_labels, average=None)
-        precisions = precision_score(
-            target_all_labels, pred_all_labels, average=None, zero_division=0)
-        recalls = recall_score(
-            target_all_labels, pred_all_labels, average=None, zero_division=0)
+        model.eval()
+        with torch.no_grad():
+            correct, total, dev_loss = 0, 0, 0
+            target_all_labels, pred_all_labels = [], []
 
-        res_df = load_res(exp_name, emo_list)
-        dict = {}
-        dict['acc'] = dev_acc.cpu().numpy()
-        dict['f1'] = f1
-        dict['precise'] = pre
-        dict['recall'] = rec
-        for emo in emo_list:
-            dict['f1_' + emo] = f1s[emo_list.index(emo)]
-            dict['precise_' + emo] = precisions[emo_list.index(emo)]
-            dict['recall_' + emo] = recalls[emo_list.index(emo)]
+            for batch_idx, batch_data in enumerate(dev_loader):
+                input_ids, attention_mask, targets = batch_data
+                input_ids, attention_mask, targets = input_ids.to(
+                    device), attention_mask.to(device), targets.to(device)
+                targets = targets.float()
+                logits = model(input_ids, attention_mask)
+                current_loss = criterion(logits, targets).item()
+                dev_loss += current_loss
 
-        res_df = res_df.append(dict, ignore_index=True)
+                logits = torch.sigmoid(logits)
+                predictions = (logits > threshold)
+                targets = targets.bool()
 
-        store_res(exp_name=exp_name, df=res_df)
+                pred_labels = predictions.cpu().numpy()
+                target_labels = targets.cpu().numpy()
 
-        print(
-            f"Epoch {epoch+1}, Dev Loss: {dev_loss:.8f}, Dev Acc: {dev_acc:.4%}, F1 Score: {f1:.4%}")
+                target_all_labels.extend(target_labels)
+                pred_all_labels.extend(pred_labels)
+
+                # all labels are correct
+                correct += torch.sum(torch.all(torch.eq(predictions, targets), dim=1))
+
+                total += targets.size(0)
+                print("total : {}/{}, current acc : {:.2%}, current loss : {:.4}".format(total,
+                      dev_loader.__len__() * batch_size, correct/total, current_loss))
+
+            dev_acc = correct / total
+            dev_loss /= len(dev_loader)
+            f1 = f1_score(target_all_labels, pred_all_labels, average='macro')
+            pre = precision_score(
+                target_all_labels, pred_all_labels, average='macro', zero_division=0)
+            rec = recall_score(target_all_labels, pred_all_labels,
+                               average='macro', zero_division=0)
+
+            f1s = f1_score(target_all_labels, pred_all_labels, average=None)
+            precisions = precision_score(
+                target_all_labels, pred_all_labels, average=None, zero_division=0)
+            recalls = recall_score(
+                target_all_labels, pred_all_labels, average=None, zero_division=0)
+
+            res_df = load_res(exp_name, emo_list)
+            dict = {}
+            dict['acc'] = dev_acc.cpu().numpy()
+            dict['f1'] = f1
+            dict['precise'] = pre
+            dict['recall'] = rec
+            for emo in emo_list:
+                dict['f1_' + emo] = f1s[emo_list.index(emo)]
+                dict['precise_' + emo] = precisions[emo_list.index(emo)]
+                dict['recall_' + emo] = recalls[emo_list.index(emo)]
+
+            res_df = res_df.append(dict, ignore_index=True)
+
+            store_res(exp_name=exp_name, df=res_df)
+
+            print(
+                f"Epoch {epoch+1}, Dev Loss: {dev_loss:.8f}, Dev Acc: {dev_acc:.4%}, F1 Score: {f1:.4%}")
+
+
+train_model(runned_epochs=runned_epochs, max_epochs=max_epochs, freeze_flag=freeze_flag)
