@@ -17,7 +17,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # load settings
 print(">>>>>>>>>>>> Loading settings... ")
 saving_dir = "./saving/"
-exp_name = "exp-0"
+exp_name = "exp-1"
 hypara = try_load_hypara(exp_name)
 if hypara is None:
     print("No such experiment!")
@@ -59,9 +59,9 @@ model = BertSentimentAnalysis(
 optimizer = optim.AdamW(model.parameters(), lr=fixed_lr)
 batch_nums = len(train_loader)
 criterion = nn.BCEWithLogitsLoss()
-scheduler = optim.lr_scheduler.ConstantLR(optimizer=optimizer)
-# scheduler = optim.lr_scheduler.CyclicLR(
-#     optimizer=optimizer, base_lr=1e-5, max_lr=5e-5, step_size_up=batch_nums * 2 / 3, step_size_down=batch_nums * 4 / 3, mode="triangular2", cycle_momentum=False)
+# scheduler = optim.lr_scheduler.ConstantLR(optimizer=optimizer)
+scheduler = optim.lr_scheduler.CyclicLR(
+    optimizer=optimizer, base_lr=1e-5, max_lr=5e-5, step_size_up=batch_nums * 2 / 3, step_size_down=batch_nums * 4 / 3, mode="triangular2", cycle_momentum=False)
 
 # if checkpoint_path exists, load checkpoint
 checkpoint_path = saving_dir + exp_name + "/chkpt.pth"
