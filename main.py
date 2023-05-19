@@ -17,7 +17,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # load settings
 print(">>>>>>>>>>>> Loading settings... ")
 saving_dir = "./saving/"
-exp_name = "exp-5"
+exp_name = "exp-6"
 hypara = try_load_hypara(exp_name)
 if hypara is None:
     print("No such experiment!")
@@ -51,13 +51,6 @@ runned_epochs = len(load_res(exp_name, emo_list))
 pretrained_model, train_loader, dev_loader, test_loader = bert_init(
     train=train, dev=dev, test=test, batch_size=batch_size, emotion_num=emotion_num, my_cache_dir="./cache/")
 
-# load fine-tuned model
-# if freeze_flag:
-#     print(">>>>>>>>>>>> Loading fine-tuned model... ")
-#     print(pretrained_model.config)
-#     bert_path = saving_dir + exp_name + '/' + hypara['bert_model'] + '.pth'
-#     pretrained_model.load_state_dict(torch.load(bert_path))
-
 # Initialize model
 model = BertSentimentAnalysis(hidden_size=pretrained_model.config.hidden_size, dropout_prob=drpout,
                               pretrained_model=pretrained_model, num_labels=emotion_num).to(device)
@@ -74,13 +67,22 @@ elif dynamic_lr == "step":
     scheduler = optim.lr_scheduler.StepLR(
         optimizer=optimizer, step_size=batch_nums, gamma=0.8)
 
+# load fine-tuned model
+if freeze_flag:
+    print(">>>>>>>>>>>> Loading fine-tuned model... ")
+    bert_path = saving_dir + 'bert_model/' + hypara['bert_model'] + '.pth'
+    model.bert.load_state_dict(torch.load(bert_path))
+    print(">>>>>>>>>>>> Freezing bert model... ")
+    for param in model.bert.parameters():
+        param.requires_grad = False
+
 # if checkpoint_path exists, load checkpoint
 checkpoint_path = saving_dir + exp_name + "/chkpt.pth"
 if os.path.exists(checkpoint_path):
     print(">>>>>>>>>>>> Loading checkpoint... ")
     model.load_state_dict(torch.load(checkpoint_path))
     # dump a bert model
-    # torch.save(model.bert.state_dict(), saving_dir + exp_name + "/bert-chkpt2-in-exp-1.pth")
+    # torch.save(model.bert.state_dict(), saving_dir + exp_name + "/bert-chkpt4-in-exp-5.pth")
 
 # Initialize tensorboard
 logs_dir = "./logs/"
