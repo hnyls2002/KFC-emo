@@ -17,7 +17,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # load settings
 print(">>>>>>>>>>>> Loading settings... ")
 saving_dir = "./saving/"
-exp_name = "exp-6"
+exp_name = "exp-8"
 hypara = try_load_hypara(exp_name)
 if hypara is None:
     print("No such experiment!")
