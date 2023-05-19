@@ -1,6 +1,7 @@
 import os
+import numpy as np
 import pandas as pd
-from sklearn.metrics import f1_score, precision_score, recall_score
+from sklearn.metrics import f1_score, precision_recall_curve, precision_score, recall_score
 import torch
 from settings import load_res, store_res, store_train, try_load_hypara
 from model import BertSentimentAnalysis
@@ -17,7 +18,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # load settings
 print(">>>>>>>>>>>> Loading settings... ")
 saving_dir = "./saving/"
-exp_name = "exp-8"
+exp_name = "exp-9"
 hypara = try_load_hypara(exp_name)
 if hypara is None:
     print("No such experiment!")
@@ -39,8 +40,9 @@ max_epochs_after_freeze = hypara['max_epochs_after_freeze']
 fixed_lr = hypara['fixed_lr']
 dynamic_lr = hypara['dynamic_lr']
 drpout = hypara['drpout']
-threshold = hypara['threshold']
+fixed_threshold = hypara['threshold']
 freeze_flag = hypara['freeze'] == "True"
+is_fixed_threshold = hypara['is_fixed_threshold'] == "True"
 
 # load data
 train, dev, test = load_data()
@@ -92,8 +94,15 @@ writer = SummaryWriter(log_dir=logs_dir + exp_name)
 # Train model
 
 
-def train_model(runned_epochs, max_epochs, freeze_flag=False):
+def train_model(runned_epochs, max_epochs):
+    # each label has its own threshold, initialize with 0
+    proper_tr = torch.tensor([0.5] * emotion_num).to(device)
+
     for epoch in range(runned_epochs, max_epochs):
+
+        all_target = torch.tensor([]).to(device)
+        all_logits = torch.tensor([]).to(device)
+
         model.train()
         train_df = pd.DataFrame(columns=['loss', 'lr', 'acc'])
         for batch_idx, batch_data in enumerate(train_loader):
@@ -109,8 +118,13 @@ def train_model(runned_epochs, max_epochs, freeze_flag=False):
             scheduler.step()
 
             # calculate accuracy on training set
-            prediction = torch.sigmoid(logits) > threshold
+            prediction = torch.sigmoid(logits) > fixed_threshold
+
             targets = targets.bool()
+            all_target = torch.cat((all_target, targets), dim=0)
+            all_logits = torch.cat(
+                (all_logits, torch.sigmoid(logits.detach())), dim=0)
+
             acc_on_train = torch.sum(
                 torch.all(torch.eq(prediction, targets), dim=1)) / targets.size(0)
 
@@ -126,6 +140,13 @@ def train_model(runned_epochs, max_epochs, freeze_flag=False):
                 'lr', {"lr": optimizer.param_groups[0]['lr']}, epoch * len(train_loader) + batch_idx)
             writer.add_scalars(
                 'acc_train', {"acc_train": acc_on_train}, epoch * len(train_loader) + batch_idx)
+
+        for i in range(emotion_num):
+            prs, rcs, trs = precision_recall_curve(
+                all_target[:, i].cpu().numpy(), all_logits[:, i].cpu().numpy())
+            rcs += 1e-10
+            f1_with_trs = 2 * prs * rcs / (prs + rcs)
+            proper_tr[i] = torch.tensor(trs[np.argmax(f1_with_trs)])
 
         store_train(exp_name, epoch, train_df)
 
@@ -147,7 +168,10 @@ def train_model(runned_epochs, max_epochs, freeze_flag=False):
                 dev_loss += current_loss
 
                 logits = torch.sigmoid(logits)
-                predictions = (logits > threshold)
+                if is_fixed_threshold:
+                    predictions = (logits > fixed_threshold)
+                else:
+                    predictions = (logits > proper_tr)
                 targets = targets.bool()
 
                 pred_labels = predictions.cpu().numpy()
@@ -165,11 +189,6 @@ def train_model(runned_epochs, max_epochs, freeze_flag=False):
 
             dev_acc = correct / total
             dev_loss /= len(dev_loader)
-            f1 = f1_score(target_all_labels, pred_all_labels, average='macro')
-            pre = precision_score(
-                target_all_labels, pred_all_labels, average='macro', zero_division=0)
-            rec = recall_score(target_all_labels, pred_all_labels,
-                               average='macro', zero_division=0)
 
             f1s = f1_score(target_all_labels, pred_all_labels, average=None)
             precisions = precision_score(
@@ -180,25 +199,45 @@ def train_model(runned_epochs, max_epochs, freeze_flag=False):
             res_df = load_res(exp_name, emo_list)
             dict = {}
             dict['acc'] = dev_acc.cpu().numpy()
-            dict['f1'] = f1
-            dict['precise'] = pre
-            dict['recall'] = rec
+
+            dict['f1_macro'] = f1_score(
+                target_all_labels, pred_all_labels, average='macro')
+
+            dict['precise_macro'] = precision_score(
+                target_all_labels, pred_all_labels, average='macro', zero_division=0)
+
+            dict['recall_macro'] = recall_score(target_all_labels, pred_all_labels,
+                                                average='macro', zero_division=0)
+
+            dict['f1_weighted'] = f1_score(
+                target_all_labels, pred_all_labels, average='weighted')
+
+            dict['precise_weighted'] = precision_score(
+                target_all_labels, pred_all_labels, average='weighted', zero_division=0)
+
+            dict['recall_weighted'] = recall_score(target_all_labels, pred_all_labels,
+                                                   average='weighted', zero_division=0)
+
             for emo in emo_list:
                 dict['f1_' + emo] = f1s[emo_list.index(emo)]
+
+            for emo in emo_list:
                 dict['precise_' + emo] = precisions[emo_list.index(emo)]
+
+            for emo in emo_list:
                 dict['recall_' + emo] = recalls[emo_list.index(emo)]
+
+            for emo in emo_list:
+                dict['tr_' +
+                     emo] = proper_tr[emo_list.index(emo)].cpu().numpy()
 
             res_df = res_df.append(dict, ignore_index=True)
 
             store_res(exp_name=exp_name, df=res_df)
 
             print(
-                f"Epoch {epoch+1}, Dev Loss: {dev_loss:.8f}, Dev Acc: {dev_acc:.4%}, F1 Score: {f1:.4%}")
+                f"Epoch {epoch+1}, Dev Loss: {dev_loss:.8f}, Dev Acc: {dev_acc:.4%}, F1 Score Macro: {dict['f1_macro']:.4%}, F1 Score Weighted: {dict['f1_weighted']:.4%}")
 
 
-if freeze_flag:
-    train_model(runned_epochs=runned_epochs,
-                max_epochs=max_epochs_after_freeze, freeze_flag=freeze_flag)
-else:
-    train_model(runned_epochs=runned_epochs,
-                max_epochs=max_epochs, freeze_flag=freeze_flag)
+train_model(runned_epochs=runned_epochs,
+            max_epochs=max_epochs_after_freeze)

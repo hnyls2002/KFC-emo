@@ -21,15 +21,7 @@ def load_res(exp_name, emo_list):
         df = pd.read_csv(path)
         return df
     else:
-        df = pd.DataFrame()
-        df['acc'] = []
-        df['precise'] = []
-        df['recall'] = []
-        df['f1'] = []
-        for x in ('precise, recall, f1').split(', '):
-            for emo in emo_list:
-                df = df.join(pd.DataFrame(columns=[x + '_' + emo]))
-        return df
+        return pd.DataFrame() 
 
 
 def store_train(exp_name, idx, df):
