@@ -1,11 +1,10 @@
 from torch import nn
-from transformers import BertModel
 
 class BertSentimentAnalysis(nn.Module):
-    def __init__(self, config, num_labels=28, inference_head=None):
+    def __init__(self, config, pretrained_model, num_labels=28, inference_head=None):
         super(BertSentimentAnalysis, self).__init__()
         self.num_labels = num_labels
-        self.bert = BertModel(config)
+        self.bert = pretrained_model.bert
         self.config = config
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         if inference_head is None:

@@ -59,10 +59,12 @@ pretrained_model, train_loader, dev_loader, test_loader = bert_init(
 #     pretrained_model.load_state_dict(torch.load(bert_path))
 
 # initialize dropout prob
+with open(saving_dir + exp_name + '/' + "config.txt", "w") as f:
+    f.write(str(pretrained_model.config))
 pretrained_model.config.hidden_dropout_prob = drpout
 # Initialize model
 model = BertSentimentAnalysis(
-    config=pretrained_model.config, num_labels=emotion_num).to(device)
+    config=pretrained_model.config, pretrained_model=pretrained_model, num_labels=emotion_num).to(device)
 optimizer = optim.AdamW(model.parameters(), lr=fixed_lr)
 batch_nums = len(train_loader)
 criterion = nn.BCEWithLogitsLoss()
@@ -187,4 +189,5 @@ def train_model(runned_epochs, max_epochs, freeze_flag=False):
                 f"Epoch {epoch+1}, Dev Loss: {dev_loss:.8f}, Dev Acc: {dev_acc:.4%}, F1 Score: {f1:.4%}")
 
 
-train_model(runned_epochs=runned_epochs, max_epochs=max_epochs, freeze_flag=freeze_flag)
+train_model(runned_epochs=runned_epochs,
+            max_epochs=max_epochs, freeze_flag=freeze_flag)
