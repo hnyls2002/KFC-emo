@@ -18,7 +18,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # load settings
 print(">>>>>>>>>>>> Loading settings... ")
 saving_dir = "./saving/"
-exp_name = "exp-13"
+exp_name = "exp-16"
 hypara = try_load_hypara(exp_name)
 if hypara is None:
     print("No such experiment!")
@@ -45,6 +45,9 @@ freeze_flag = hypara['freeze'] == "True"
 is_fixed_threshold = hypara['is_fixed_threshold'] == "True"
 emo_type = hypara['emo_type']
 extended_flag = hypara['extended_flag'] == "True"
+dense_num = hypara['dense_num']
+
+print(">>>>>>>>>>>> Dense layer number is: ", dense_num)
 
 print(">>>>>>>>>>>> The emotion list is: ", emo_list)
 
@@ -60,7 +63,7 @@ pretrained_model, train_loader, dev_loader, test_loader = bert_init(
 
 # Initialize model
 model = BertSentimentAnalysis(hidden_size=pretrained_model.config.hidden_size, dropout_prob=drpout,
-                              pretrained_model=pretrained_model, num_labels=emotion_num).to(device)
+                              pretrained_model=pretrained_model, num_labels=emotion_num, dense_num=dense_num).to(device)
 optimizer = optim.AdamW(model.parameters(), lr=fixed_lr)
 batch_nums = len(train_loader)
 criterion = nn.BCEWithLogitsLoss()
