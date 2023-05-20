@@ -18,7 +18,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # load settings
 print(">>>>>>>>>>>> Loading settings... ")
 saving_dir = "./saving/"
-exp_name = "exp-16"
+exp_name = "exp-18"
 hypara = try_load_hypara(exp_name)
 if hypara is None:
     print("No such experiment!")
@@ -78,10 +78,12 @@ elif dynamic_lr == "step":
         optimizer=optimizer, step_size=batch_nums, gamma=0.8)
 
 # load fine-tuned model
-if freeze_flag:
+if hypara['bert_model'] != "None":
     print(">>>>>>>>>>>> Loading fine-tuned model... ")
     bert_path = saving_dir + 'bert_model/' + hypara['bert_model'] + '.pth'
     model.bert.load_state_dict(torch.load(bert_path))
+
+if freeze_flag:
     print(">>>>>>>>>>>> Freezing bert model... ")
     for param in model.bert.parameters():
         param.requires_grad = False
@@ -92,7 +94,7 @@ if os.path.exists(checkpoint_path):
     print(">>>>>>>>>>>> Loading checkpoint... ")
     model.load_state_dict(torch.load(checkpoint_path))
     # dump a bert model
-    # torch.save(model.bert.state_dict(), saving_dir + exp_name + "/bert-chkpt4-in-exp-5.pth")
+    # torch.save(model.bert.state_dict(), saving_dir + exp_name + "/bert-chkpt1-in-exp-17.pth")
 
 # Initialize tensorboard
 logs_dir = "./logs/"
