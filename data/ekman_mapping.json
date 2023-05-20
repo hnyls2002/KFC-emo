@@ -1,17 +1,17 @@
 {
-    "anger": [
+    "anger_ek": [
         "anger",
         "annoyance",
         "disapproval"
     ],
-    "disgust": [
+    "disgust_ek": [
         "disgust"
     ],
-    "fear": [
+    "fear_ek": [
         "fear",
         "nervousness"
     ],
-    "joy": [
+    "joy_ek": [
         "joy",
         "amusement",
         "approval",
@@ -25,17 +25,20 @@
         "desire",
         "caring"
     ],
-    "sadness": [
+    "sadness_ek": [
         "sadness",
         "disappointment",
         "embarrassment",
         "grief",
         "remorse"
     ],
-    "surprise": [
+    "surprise_ek": [
         "surprise",
         "realization",
         "confusion",
         "curiosity"
+    ],
+    "neutral_ek": [
+        "neutral"
     ]
 }

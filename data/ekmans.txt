@@ -1,6 +1,7 @@
-anger
-disgust
-fear
-joy
-sadness
-surprise
+anger_ek
+disgust_ek
+fear_ek
+joy_ek
+sadness_ek
+surprise_ek
+neutral_ek

@@ -1,5 +1,5 @@
 {
-    "positive": [
+    "positive_se": [
         "amusement",
         "excitement",
         "joy",
@@ -13,7 +13,7 @@
         "relief",
         "approval"
     ],
-    "negative": [
+    "negative_se": [
         "fear",
         "nervousness",
         "remorse",
@@ -26,10 +26,11 @@
         "annoyance",
         "disapproval"
     ],
-    "ambiguous": [
+    "ambiguous_se": [
         "realization",
         "surprise",
         "curiosity",
-        "confusion"
+        "confusion",
+        "neutral"
     ]
 }
