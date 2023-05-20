@@ -1,0 +1,18 @@
+{
+    "model_name": "DenseLayer",
+    "freeze": "True",
+    "bert_model": "bert-chkpt4-in-exp-5",
+    "emo_list_path": "./data/emotions.txt",
+    "emo_type": "goemotion",
+    "batch_size": 16,
+    "fixed_lr": 5e-05,
+    "max_epochs": 4,
+    "max_epochs_after_freeze": 3,
+    "dynamic_lr": "cyclic",
+    "drpout": 0.1,
+    "threshold": 0.5,
+    "is_fixed_threshold": "False",
+    "extended_flag": "False",
+    "dense_num": 2,
+    "comment": "thresholdToMaxF1,doubleDenseNet"
+}
