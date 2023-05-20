@@ -7,7 +7,7 @@
     "batch_size": 16,
     "fixed_lr": 5e-05,
     "max_epochs": 4,
-    "max_epochs_after_freeze": 2,
+    "max_epochs_after_freeze": 3,
     "dynamic_lr": "cyclic",
     "drpout": 0.1,
     "threshold": 0.5,
