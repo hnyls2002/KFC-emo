@@ -1,0 +1,17 @@
+{
+    "model_name": "DenseLayer",
+    "freeze": "False",
+    "bert_model": "None",
+    "emo_list_path": "./data/emotions.txt",
+    "emo_type": "goemotion",
+    "batch_size": 16,
+    "fixed_lr": 5e-05,
+    "max_epochs": 4,
+    "max_epochs_after_freeze": 0,
+    "dynamic_lr": "constant",
+    "drpout": 0.0,
+    "threshold": 0.5,
+    "is_fixed_threshold": "False",
+    "extended_flag": "True",
+    "comment": "thresholdToMaxF1"
+}

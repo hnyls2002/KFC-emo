@@ -11,7 +11,7 @@ def load_data(data_path="data/", emo_type="goemotion", extended_flag=False):
     if os.path.exists(data_path + "train.csv") and os.path.exists(data_path + "dev.csv") and os.path.exists(data_path + "test.csv"):
         # Load processed CSV files
         if extended_flag:
-            # train = pd.read_csv(data_path + "extended_train.csv")
+            train = pd.read_csv(data_path + "extended_train.csv")
             # # split extended set into 10 parts and write to disk
             # for i in range(10):
             #     train_part = train.iloc[i * 100000: (i + 1) * 100000]
@@ -19,12 +19,12 @@ def load_data(data_path="data/", emo_type="goemotion", extended_flag=False):
             #         data_path + "extended_train_" + str(i) + ".csv", index=False)
             # exit()
             # load extended train set from 10 parts
-            train = pd.DataFrame()
-            for i in range(10):
-                print(">>>>>>>>>>>> Loading extended train set part: ", i)
-                train_part = pd.read_csv(
-                    data_path + "extended_train_" + str(i) + ".csv")
-                train = pd.concat([train, train_part])
+            # train = pd.DataFrame()
+            # for i in range(8, 10):
+            #     print(">>>>>>>>>>>> Loading extended train set part: ", i)
+            #     train_part = pd.read_csv(
+            #         data_path + "extended_train_" + str(i) + ".csv")
+            #     train = pd.concat([train, train_part])
         else:
             train = pd.read_csv(data_path + "train.csv")
         dev = pd.read_csv(data_path + "dev.csv")

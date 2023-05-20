@@ -243,5 +243,8 @@ def train_model(runned_epochs, max_epochs):
                 f"Epoch {epoch+1}, Dev Loss: {dev_loss:.8f}, Dev Acc: {dev_acc:.4%}, F1 Score Macro: {dict['f1_macro']:.4%}, F1 Score Weighted: {dict['f1_weighted']:.4%}")
 
 
-train_model(runned_epochs=runned_epochs,
-            max_epochs=max_epochs_after_freeze)
+if freeze_flag:
+    train_model(runned_epochs=runned_epochs,
+                max_epochs=max_epochs_after_freeze)
+else:
+    train_model(runned_epochs=runned_epochs, max_epochs=max_epochs)
