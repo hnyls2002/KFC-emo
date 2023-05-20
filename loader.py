@@ -5,12 +5,28 @@ from sklearn.model_selection import train_test_split
 import torch
 
 
-def load_data(data_path="data/", emo_type="goemotion"):
+def load_data(data_path="data/", emo_type="goemotion", extended_flag=False):
     print(">>>>>>>>>>>> Loading Data >>>>>>>>>>>>")
     # Check if processed CSV files exist
     if os.path.exists(data_path + "train.csv") and os.path.exists(data_path + "dev.csv") and os.path.exists(data_path + "test.csv"):
         # Load processed CSV files
-        train = pd.read_csv(data_path + "train.csv")
+        if extended_flag:
+            # train = pd.read_csv(data_path + "extended_train.csv")
+            # # split extended set into 10 parts and write to disk
+            # for i in range(10):
+            #     train_part = train.iloc[i * 100000: (i + 1) * 100000]
+            #     train_part.to_csv(
+            #         data_path + "extended_train_" + str(i) + ".csv", index=False)
+            # exit()
+            # load extended train set from 10 parts
+            train = pd.DataFrame()
+            for i in range(10):
+                print(">>>>>>>>>>>> Loading extended train set part: ", i)
+                train_part = pd.read_csv(
+                    data_path + "extended_train_" + str(i) + ".csv")
+                train = pd.concat([train, train_part])
+        else:
+            train = pd.read_csv(data_path + "train.csv")
         dev = pd.read_csv(data_path + "dev.csv")
         test = pd.read_csv(data_path + "test.csv")
     else:
@@ -84,6 +100,31 @@ def load_data(data_path="data/", emo_type="goemotion"):
 
     # write first 100 line to test.txt
     # dataset.head(100).to_csv(data_path + "test.txt", index=False)
+
+    # print(">>>>>>>>>>>> Extending Train Set >>>>>>>>>>>>")
+    # extended_train = train
+    # new_rows = []
+    # while len(extended_train) + len(new_rows) < int(1e6):
+    #     # randomly select two row
+    #     print("extending train set: ", len(
+    #         extended_train) + len(new_rows), " / ", int(1e6))
+
+    #     idx1, idx2 = train.sample(2).index
+
+    #     if idx1 != idx2:
+    #         text = train.loc[idx1, "text"] + " " + train.loc[idx2, "text"]
+    #         row = [0] * len(extended_train.columns)
+    #         row[extended_train.columns.get_loc("text")] = text
+    #         for emo in emotion_list:
+    #             if train.loc[idx1, emo] or train.loc[idx2, emo]:
+    #                 row[extended_train.columns.get_loc(emo)] = 1
+    #         new_rows.append(row)
+
+    # extended_train = pd.concat(
+    #     [extended_train, pd.DataFrame(new_rows, columns=extended_train.columns)])
+
+    # # store extended train set
+    # extended_train.to_csv(data_path + "extended_train.csv", index=False)
 
     for dataset in (train, dev, test):
         if emo_type == "goemotion":

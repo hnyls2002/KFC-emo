@@ -18,7 +18,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # load settings
 print(">>>>>>>>>>>> Loading settings... ")
 saving_dir = "./saving/"
-exp_name = "exp-12"
+exp_name = "exp-13"
 hypara = try_load_hypara(exp_name)
 if hypara is None:
     print("No such experiment!")
@@ -44,11 +44,12 @@ fixed_threshold = hypara['threshold']
 freeze_flag = hypara['freeze'] == "True"
 is_fixed_threshold = hypara['is_fixed_threshold'] == "True"
 emo_type = hypara['emo_type']
+extended_flag = hypara['extended_flag'] == "True"
 
 print(">>>>>>>>>>>> The emotion list is: ", emo_list)
 
 # load data
-train, dev, test = load_data(emo_type=emo_type)
+train, dev, test = load_data(emo_type=emo_type, extended_flag=extended_flag)
 
 # load already runned epochs
 runned_epochs = len(load_res(exp_name, emo_list))
