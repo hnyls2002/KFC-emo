@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Emotion Prediction With BERT-base Model</title>
+    <style>
+        body {
+            background-color: #f1f1f1;
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        form {
+            text-align: center;
+            /* 让表单元素居中对齐 */
+        }
+
+        label,
+        input {
+            display: inline-block;
+            vertical-align: middle;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        input[type="text"] {
+            border-radius: 5px;
+            border: 2px solid #ccc;
+            padding: 10px;
+            font-size: 16px;
+            width: 500px;
+            height: 40px;
+            box-sizing: border-box;
+            transition: border-color .3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #8E44AD;
+        }
+
+        button[type="submit"] {
+            background-color: #3498db;
+            color: white;
+            font-size: 20px;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            cursor: pointer;
+            transition: background-color .3s;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #2980b9;
+        }
+
+        h2,
+        h3,
+        ul {
+            text-align: center;
+            list-style-type: none;
+        }
+
+        .reference-list {
+            margin-top: 50px;
+            border: 2px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+            list-style-type: none;
+        }
+
+        .reference-item {
+            font-size: 18px;
+            margin-bottom: 10px;
+            list-style-type: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Emotion Prediction With BERT-base Model</h1>
+    <form method="post">
+        <label for="input_text">Enter your text:</label>
+        <br>
+        <input type="text" id="input_text" name="input_text"><br><br>
+        <button type="submit">Submit</button>
+    </form>
+
+    {% if predictions %}
+    <h2>Predictions:</h2>
+    <ul>
+        {% for p in predictions %}
+        <li>{{ p }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    <div class="reference-list">
+        <h2>Reference:</h2>
+        <h3>The emotion labels used by this model are based on the GoEmotions</h3>
+        <ul>
+            <li class="reference-item">admiration 😍, amusement 😆, anger 😠</li>
+            <li class="reference-item">annoyance 😒, approval 👍, caring 🥰</li>
+            <li class="reference-item">confusion 😕, curiosity 🤔, desire 😏</li>
+            <li class="reference-item">disappointment 😞, disapproval 👎, disgust 🤢</li>
+            <li class="reference-item">embarrassment 😳, excitement 😲, fear 😨</li>
+            <li class="reference-item">gratitude 🙏, grief 😭, joy 😂</li>
+            <li class="reference-item">love 😘, nervousness 😰, optimism 😀</li>
+            <li class="reference-item">pride 😏, realization 😮, relief 😌</li>
+            <li class="reference-item">remorse 😔, sadness 😢, surprise 😱</li>
+            <li class="reference-item">neutral 😐</li>
+        </ul>
+    </div>
+
+    <footer>
+        <p> Author : hnyls2002 from Shanghai Jiao Tong University</p>
+        <p><a href="https://github.com/hnyls2002/KFC-emo">View My Project On Github</a></p>
+    </footer>
+</body>
+
+</html>
